@@ -4,19 +4,19 @@
 
 int main()
 {
-    char errbuf[PCAP_ERRBUF_SIZE];
-    pcap_if_t *it;
+    char errbuf[PCAP_ERRBUF_SIZE] = {0};
+    pcap_if_t *ift = NULL;
 
-    if(pcap_findalldevs(&it, errbuf) != 0) {
+    if(pcap_findalldevs(&ift, errbuf) == 0) {
+        pcap_if_t *it = ift; // local copy of *ift, otherwise *ift can't be free correctly
         while (it) {
             printf("%s - %s\n", it->name, it->description);
-            // printf("%s\n", iptos(it->addresses->addr));
             it = it->next;
         }
-        pcap_freealldevs(it);
+        pcap_freealldevs(ift);
     }
     else {
-        printf("error: find all devs - %s\n", errbuf);
+        printf("error: %s\n", errbuf);
         exit(-1);
     }
 
