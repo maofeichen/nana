@@ -2,10 +2,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-void if_print(pcap_if_t *ift);
-void sa_print(struct sockaddr *sa);
+void print_ift(pcap_if_t *ift);
+void print_sa(struct sockaddr *sa);
 
-void sa_print(struct sockaddr *sa)
+void print_sa(struct sockaddr *sa)
 {
     if(sa != NULL) {
         char str[INET6_ADDRSTRLEN] = {0};
@@ -28,7 +28,7 @@ void sa_print(struct sockaddr *sa)
     }
 }
 
-void if_print(pcap_if_t *ift)
+void print_ift(pcap_if_t *ift)
 {
     pcap_addr_t *a = NULL;
 
@@ -36,33 +36,33 @@ void if_print(pcap_if_t *ift)
         printf("%s:\n", ift->name);
         if(ift->description)
             printf("\t%s\n", ift->description);
+
         if(ift->flags & PCAP_IF_LOOPBACK)
             printf("\tloopback\n");
 
         for(a = ift->addresses; a; a = a->next) {
-            sa_print(a->addr);
-            sa_print(a->netmask);
-            sa_print(a->broadaddr);
-            sa_print(a->dstaddr);
+            print_sa(a->addr);
+            print_sa(a->netmask);
+            print_sa(a->broadaddr);
+            print_sa(a->dstaddr);
         }
     }
 }
 
-int main()
+int main(int argc, char *argv[])
 {
     char errbuf[PCAP_ERRBUF_SIZE] = {0};
-    pcap_if_t *ift = NULL;
+    pcap_if_t *ift, *it;
 
     if(pcap_findalldevs(&ift, errbuf) == 0) {
-        pcap_if_t *it = ift; // local copy of *ift, otherwise *ift can't be free correctly
-        while (it) {
-            if_print(it);
-            it = it->next;
+        // local copy of *ift, otherwise *ift can't be free correctly
+        for(it = ift; it; it=it->next) {
+            print_ift(it);
         }
         pcap_freealldevs(ift);
     }
     else {
-        printf("error: %s\n", errbuf);
+        fprintf(stderr, "%s\n", errbuf);
         exit(1);
     }
 
