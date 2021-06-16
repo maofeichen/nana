@@ -1,55 +1,89 @@
 #include <pcap.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
+#include <string.h>
+#include <unistd.h>
 
+#define FLAG_STRLEN 128
+
+bool get_flags(bpf_u_int32 flags, char* sflag);
+bool get_sa_addr(struct sockaddr *sa, char* saddr);
 void print_ift(pcap_if_t *ift);
-void print_sa(struct sockaddr *sa);
+void print_alldev();
+void usage(char *n);
 
-void print_sa(struct sockaddr *sa)
+bool get_flags(bpf_u_int32 flags, char* sflag)
+{
+    if(flags & PCAP_IF_LOOPBACK)
+        strcat(sflag, "loopback ");
+
+    if(flags & PCAP_IF_UP)
+        strcat(sflag, "up ");
+
+    if(flags & PCAP_IF_WIRELESS)
+        strcat(sflag, "wireless ");
+
+    if (*sflag != 0)
+        return true;
+    else
+        return false;
+}
+
+bool get_sa_addr(struct sockaddr *sa, char* saddr)
 {
     if(sa != NULL) {
-        char str[INET6_ADDRSTRLEN] = {0};
         switch (sa->sa_family)
         {
         case AF_INET :
         case AF_INET6:
-            if(inet_ntop(sa->sa_family,&(((struct sockaddr_in*)sa)->sin_addr),str,INET6_ADDRSTRLEN) != NULL) {
-                printf("\t%s\n", str);
-            }
-            else {
+            if(inet_ntop(sa->sa_family,&(((struct sockaddr_in*)sa)->sin_addr),saddr,INET6_ADDRSTRLEN) == NULL) {
                 perror("inet_ntop");
-                exit(EXIT_FAILURE);
+                // exit(EXIT_FAILURE);
             }
             break;
         default:
-            printf("\terror: unknown af_family:%u\n", sa->sa_family);
-            break;
+            printf("\terror: unknown af_family:%u", sa->sa_family);
+            return false;
+            // break;
         }
+        return true;
     }
+    return false;
 }
 
 void print_ift(pcap_if_t *ift)
 {
     pcap_addr_t *a = NULL;
+    char saddr[INET6_ADDRSTRLEN] = {0};
+    char sflag[FLAG_STRLEN] = {0};
 
     if(ift != NULL) {
         printf("%s:\n", ift->name);
         if(ift->description)
             printf("\t%s\n", ift->description);
 
-        if(ift->flags & PCAP_IF_LOOPBACK)
-            printf("\tloopback\n");
+        if(get_flags(ift->flags, sflag) )
+            printf("\t%s\n", sflag);
 
         for(a = ift->addresses; a; a = a->next) {
-            print_sa(a->addr);
-            print_sa(a->netmask);
-            print_sa(a->broadaddr);
-            print_sa(a->dstaddr);
+            if(get_sa_addr(a->addr,saddr) ) 
+                printf("\taddr: %s ", saddr);
+            
+            if(get_sa_addr(a->netmask, saddr) )
+                printf("netmask: %s ", saddr);
+
+            if(get_sa_addr(a->broadaddr, saddr) )
+                printf("broadaddr: %s ", saddr);
+            
+            if(get_sa_addr(a->dstaddr, saddr) )
+                printf("dstaddr: %s ", saddr);
+            printf("\n");
         }
     }
 }
 
-int main(int argc, char *argv[])
+void print_alldev()
 {
     char errbuf[PCAP_ERRBUF_SIZE] = {0};
     pcap_if_t *ift, *it;
@@ -65,6 +99,46 @@ int main(int argc, char *argv[])
         fprintf(stderr, "%s\n", errbuf);
         exit(1);
     }
+}
+
+void usage(char *n)
+{
+    printf("usage: %s -p\n", n);
+}
+
+int main(int argc, char *argv[])
+{
+    // opterr = 0;
+    for (;;) {
+        int opt = getopt(argc, argv, "ph?");
+        if (opt == -1)
+            break;
+        switch (opt)
+        {
+        case 'p':
+            print_alldev();
+            break;
+        case '?':
+            fprintf(stderr, "%s: unexpected option: %c\n", argv[0], optopt);
+            usage(argv[0]);
+            return -1;
+        case 'h':
+        default:
+            usage(argv[0]);
+            break;
+        }
+    }
+
+    for(int i = optind; i < argc; i++) {
+        fprintf(stderr, "non option: %s\n", argv[i]);
+    }
+
+    // if (optind != argc)
+    // {
+    //     fprintf(stderr, "A non option was supplied\n");
+    //     usage(argv[0]);
+    //     return -1;
+    // }
 
     return 0;
 }
