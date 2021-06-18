@@ -1,28 +1,47 @@
 #include <pcap.h>
+#include <getopt.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
 #include <unistd.h>
 
-#define FLAG_STRLEN 128
+#define FLAG_STRLEN 128 /* Maximum str length to hold dev flags */
 
-bool get_flags(bpf_u_int32 flags, char* sflag);
+bool get_strflags(bpf_u_int32 flags, char* sflag);
 bool get_sa_addr(struct sockaddr *sa, char* saddr);
-void print_ift(pcap_if_t *ift);
-void print_alldev();
+bool print_dev(pcap_if_t *ift);
+bool print_alldevs();
 void usage(char *n);
 
-bool get_flags(bpf_u_int32 flags, char* sflag)
+bool get_strflags(bpf_u_int32 flags, char* sflag)
 {
-    if(flags & PCAP_IF_LOOPBACK)
-        strcat(sflag, "loopback ");
+    bool isflag = false;
+    if(flags & PCAP_IF_UP) {
+        strcat(sflag, "UP");
+        isflag = true;
+    }
 
-    if(flags & PCAP_IF_UP)
-        strcat(sflag, "up ");
+    if(flags & PCAP_IF_LOOPBACK) {
+        if(isflag)
+            strcat(sflag, "|");
+        strcat(sflag, "LOOPBACK");
+        isflag = true;
+    }
 
-    if(flags & PCAP_IF_WIRELESS)
-        strcat(sflag, "wireless ");
+    if(flags & PCAP_IF_RUNNING) {
+        if(isflag)
+            strcat(sflag, "|");
+        strcat(sflag, "RUNNING");
+        isflag = true;
+    }
+
+    if(flags & PCAP_IF_WIRELESS) {
+        if(isflag)
+            strcat(sflag, "|");
+        strcat(sflag, "WIRELESS");
+        isflag = true;
+    }
 
     if (*sflag != 0)
         return true;
@@ -52,19 +71,20 @@ bool get_sa_addr(struct sockaddr *sa, char* saddr)
     return false;
 }
 
-void print_ift(pcap_if_t *ift)
+bool print_dev(pcap_if_t *ift)
 {
     pcap_addr_t *a = NULL;
     char saddr[INET6_ADDRSTRLEN] = {0};
     char sflag[FLAG_STRLEN] = {0};
 
-    if(ift != NULL) {
+    if(ift != NULL && ift->name) {
         printf("%s:\n", ift->name);
+        
         if(ift->description)
             printf("\t%s\n", ift->description);
 
-        if(get_flags(ift->flags, sflag) )
-            printf("\t%s\n", sflag);
+        if(get_strflags(ift->flags, sflag) )
+            printf("\tflags=%d<%s>\n", ift->flags, sflag);
 
         for(a = ift->addresses; a; a = a->next) {
             if(get_sa_addr(a->addr,saddr) ) 
@@ -80,25 +100,28 @@ void print_ift(pcap_if_t *ift)
                 printf("dstaddr: %s ", saddr);
             printf("\n");
         }
+        return true;
     }
+    return false;
 }
 
-void print_alldev()
+bool print_alldevs()
 {
     char errbuf[PCAP_ERRBUF_SIZE] = {0};
-    pcap_if_t *ift, *it;
+    pcap_if_t *ift;
 
     if(pcap_findalldevs(&ift, errbuf) == 0) {
         // local copy of *ift, otherwise *ift can't be free correctly
-        for(it = ift; it; it=it->next) {
-            print_ift(it);
+        for(pcap_if_t *it = ift; it; it=it->next) {
+            print_dev(it);
         }
         pcap_freealldevs(ift);
     }
     else {
         fprintf(stderr, "%s\n", errbuf);
-        exit(1);
+        return false;
     }
+    return true;
 }
 
 void usage(char *n)
@@ -108,20 +131,22 @@ void usage(char *n)
 
 int main(int argc, char *argv[])
 {
+    static const struct option longopts[] = {
+        {.name = "print", .has_arg = no_argument, .val = 'p'},
+        {.name = "help", .has_arg = no_argument, .val = 'h'},
+        {},
+    };
+
     // opterr = 0;
     for (;;) {
-        int opt = getopt(argc, argv, "ph?");
+        int opt = getopt_long(argc, argv, "ph", longopts, NULL);
         if (opt == -1)
             break;
         switch (opt)
         {
         case 'p':
-            print_alldev();
+            print_alldevs();
             break;
-        case '?':
-            fprintf(stderr, "%s: unexpected option: %c\n", argv[0], optopt);
-            usage(argv[0]);
-            return -1;
         case 'h':
         default:
             usage(argv[0]);
@@ -130,15 +155,8 @@ int main(int argc, char *argv[])
     }
 
     for(int i = optind; i < argc; i++) {
-        fprintf(stderr, "non option: %s\n", argv[i]);
+        fprintf(stderr, "%s: invalid positional argument: %s\n", argv[0], argv[i]);
     }
-
-    // if (optind != argc)
-    // {
-    //     fprintf(stderr, "A non option was supplied\n");
-    //     usage(argv[0]);
-    //     return -1;
-    // }
 
     return 0;
 }
