@@ -1,8 +1,14 @@
 CC = gcc
 CCFLAG = -g -Wall
 
-all: nm.c
-	${CC} ${CCFLAG} -o nm nm.c -lpcap 
+nm:	main.o nm_pcap.o
+	${CC} ${CCFLAG} -o nm main.o nm_pcap.o -lpcap 
+
+main.o:	main.c
+	${CC} ${CCFLAG} -c main.c nm.h
+
+nm_pcap.o:	nm_pcap.c
+	${CC} ${CCFLAG} -c nm_pcap.c nm_pcap.h 
 
 .PHONY: clean
 clean:
