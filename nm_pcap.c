@@ -1,9 +1,6 @@
-#include <string.h> // for strcat, etc
 #include "nm_pcap.h"
-
-#define FLAG_STRLEN 128 /* Maximum str length to hold dev flags */
-
-
+#include <stdlib.h> // exit, etc.
+#include <string.h> /* strcat */
 
 bool get_straddr(struct sockaddr *sa, char* saddr)
 {
@@ -78,70 +75,50 @@ bool get_strflags(bpf_u_int32 flags, char* sflag)
         return false;
 }
 
-bool print_dev(pcap_if_t *ift)
+void print_dev(pcap_if_t *ift)
 {
-    pcap_addr_t *paddr = NULL;
-    char straddr[INET6_ADDRSTRLEN] = {0};
-    char strflag[FLAG_STRLEN] = {0};
+    pcap_addr_t *paddr;
+    char saddr[INET6_ADDRSTRLEN] = {0};
+    char sflag[FLAG_STRLEN];
 
-    if(ift != NULL && ift->name) {
-        printf("%s:\n", ift->name); // dev: name
-        
-        if(ift->description)    // dev: description 
+    if(ift != NULL) {
+        /* Print dev name, desc and flags if any */
+        if(ift->name)
+            printf("%s:\n", ift->name); 
+        if(ift->description)
             printf("\t%s\n", ift->description);
+        if(get_strflags(ift->flags, sflag)) 
+            printf("\tflags=%d<%s>\n", ift->flags, sflag);
 
-        if(get_strflags(ift->flags, strflag) )  // dev: flags 
-            printf("\tflags=%d<%s>\n", ift->flags, strflag);
-
-        // dev: addrs 
+        /* Print dev addr, netmask, broad, dst addrs if any */
         for(paddr = ift->addresses; paddr; paddr = paddr->next) {   
-            if(get_straddr(paddr->addr,straddr) ) {
-                switch (paddr->addr->sa_family)
-                {
-                case AF_INET:
-                    printf("\tinet ");
-                    break;
-                case AF_INET6:
-                    printf("\tinet6 ");
-                    break;
-                default:
-                    printf("\taddr ");
-                    break;
-                }
-                printf("%s ", straddr);
-            }
-            
-            if(get_straddr(paddr->netmask, straddr) )
-                printf("netmask %s ", straddr);
-
-            if(get_straddr(paddr->broadaddr, straddr) )
-                printf("broadaddr %s ", straddr);
-            
-            if(get_straddr(paddr->dstaddr, straddr) )
-                printf("dstaddr %s ", straddr);
+            if(get_straddr(paddr->addr,saddr) )         // addr 
+                printf("\taddr %s ", saddr);
+            if(get_straddr(paddr->netmask, saddr) )     // netmask
+                printf("netmask %s ", saddr);
+            if(get_straddr(paddr->broadaddr, saddr) )   // broadaddr
+                printf("broadaddr %s ", saddr);
+            if(get_straddr(paddr->dstaddr, saddr) )     // dstaddr
+                printf("dstaddr %s ", saddr);
             printf("\n");
         }
-        return true;
+    } else {
+        fprintf(stderr, "Error: pcap_if_t:%p is NULL\n", ift);
     }
-    return false;
 }
 
-bool print_alldevs()
+void print_alldevs()
 {
-    char errbuf[PCAP_ERRBUF_SIZE] = {0};
-    pcap_if_t *ift;
+    char errbuf[PCAP_ERRBUF_SIZE];
+    pcap_if_t *ift, *it;
 
     if(pcap_findalldevs(&ift, errbuf) == 0) {
-        // local copy of *ift, otherwise *ift can't be free correctly
-        for(pcap_if_t *it = ift; it; it=it->next) {
+        for(it = ift; it; it=it->next) {
             print_dev(it);
         }
         pcap_freealldevs(ift);
+    } else {
+        fprintf(stderr, "Error: %s\n", errbuf);
+        exit(1);
     }
-    else {
-        fprintf(stderr, "%s\n", errbuf);
-        return false;
-    }
-    return true;
 }
-

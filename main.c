@@ -1,17 +1,22 @@
-#include "nm.h"
+#include "nm_pcap.h"
+#include <getopt.h>
+#include <stdlib.h> /* exit, etc. */
 
-void 
-usage(char *n)
+void usage(char *n)
 {
-    printf("Usage: %s [options]\n"
+    printf("usage: %s [options]\n"
            "Options:\n"
            "--print|-p          Display network interface information\n"
            "--help|-h           Display help information\n"
            "--version|-v        Display version informaion\n", n);
 }
 
-int 
-main(int argc, char *argv[])
+void version()
+{
+    printf("nm version 0.01\n");
+}
+
+int main(int argc, char *argv[])
 {
     int opt, opt_index;
     static const struct option longopts[] = {
@@ -21,6 +26,10 @@ main(int argc, char *argv[])
         {NULL,      0,           0, 0},
     };
 
+    if(argc <= 1) {
+        usage(argv[0]);
+    }
+
     while ((opt = getopt_long_only(argc, argv, "phv", longopts, &opt_index)) != -1) {
         printf("opt_index: %d - option: %s\n", opt_index, longopts[opt_index].name);
         switch (opt)
@@ -29,7 +38,7 @@ main(int argc, char *argv[])
             print_alldevs();
             break;
         case 'v':
-            printf("nm version 0.01\n");
+            version();
             break;
         case 'h':
         default:
@@ -42,5 +51,5 @@ main(int argc, char *argv[])
         fprintf(stderr, "%s: invalid positional argument: %s\n", argv[0], argv[i]);
     }
 
-    return 0;
+    exit(0);
 }
