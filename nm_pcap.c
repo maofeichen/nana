@@ -1,6 +1,6 @@
 #include "nm_pcap.h"
-#include <stdlib.h> // exit, etc.
-#include <string.h> /* strcat */
+#include <stdlib.h> // exit, etc 
+#include <string.h> // strcat 
 
 bool get_straddr(struct sockaddr *sa, char* saddr)
 {
@@ -24,7 +24,7 @@ bool get_straddr(struct sockaddr *sa, char* saddr)
     return false;
 }
 
-bool get_strflags(bpf_u_int32 flags, char* sflag)
+bool get_strflag(bpf_u_int32 flags, char* sflag)
 {
     bool isflag = false;
     if(flags & PCAP_IF_UP) {
@@ -82,23 +82,23 @@ void print_dev(pcap_if_t *ift)
     char sflag[FLAG_STRLEN];
 
     if(ift != NULL) {
-        /* Print dev name, desc and flags if any */
+        // Print dev name, desc and flags if any 
         if(ift->name)
-            printf("%s:\n", ift->name); 
+            printf("%s: ", ift->name); 
         if(ift->description)
-            printf("\t%s\n", ift->description);
-        if(get_strflags(ift->flags, sflag)) 
+            printf("%s\n", ift->description);
+        if(get_strflag(ift->flags, sflag)) 
             printf("\tflags=%d<%s>\n", ift->flags, sflag);
 
-        /* Print dev addr, netmask, broad, dst addrs if any */
-        for(paddr = ift->addresses; paddr; paddr = paddr->next) {   
-            if(get_straddr(paddr->addr,saddr) )         // addr 
+        // Print dev addr, netmask, broad, dst addrs if any 
+        for(paddr = ift->addresses; paddr; paddr = paddr->next) {
+            if(get_straddr(paddr->addr,saddr) )
                 printf("\taddr %s ", saddr);
-            if(get_straddr(paddr->netmask, saddr) )     // netmask
+            if(get_straddr(paddr->netmask, saddr) )
                 printf("netmask %s ", saddr);
-            if(get_straddr(paddr->broadaddr, saddr) )   // broadaddr
+            if(get_straddr(paddr->broadaddr, saddr) )
                 printf("broadaddr %s ", saddr);
-            if(get_straddr(paddr->dstaddr, saddr) )     // dstaddr
+            if(get_straddr(paddr->dstaddr, saddr) )
                 printf("dstaddr %s ", saddr);
             printf("\n");
         }

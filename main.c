@@ -1,6 +1,6 @@
 #include "nm_pcap.h"
 #include <getopt.h>
-#include <stdlib.h> /* exit, etc. */
+#include <stdlib.h> // exit, etc. 
 
 void usage(char *n)
 {
@@ -13,7 +13,7 @@ void usage(char *n)
 
 void version()
 {
-    printf("nm version 0.01\n");
+    printf("na version 0.01\n");
 }
 
 int main(int argc, char *argv[])
