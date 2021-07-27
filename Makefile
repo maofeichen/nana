@@ -1,15 +1,36 @@
-CC = gcc
-CCFLAG = -g -Wall
+DIR_SRC := ./src
+DIR_OBJ := .
+DIR_BIN := .
 
-nm:	main.o nm_pcap.o
-	${CC} ${CCFLAG} -o nm main.o nm_pcap.o -lpcap 
+TARGETS := $(DIR_BIN)/na
+SRC		 = $(wildcard $(DIR_SRC)/*.c)
+OBJ		:= $(SRC:$(DIR_SRC)/%.c=$(DIR_OBJ)/%.o)
 
-main.o:	main.c
-	${CC} ${CCFLAG} -c main.c 
+CC		= gcc
+CCFLAG	= -g -Wall
+CINC	= -lpcap
 
-nm_pcap.o:	nm_pcap.c
-	${CC} ${CCFLAG} -c nm_pcap.c nm_pcap.h 
+.PHONY: all clean
+all: $(TARGETS) 
 
-.PHONY: clean
+# Linking
+$(TARGETS): $(OBJ) 
+	$(CC) $(CINC) $^ -o $@
+
+# For each source file, compile to its object file
+$(OBJ): $(DIR_OBJ)/%.o: $(DIR_SRC)/%.c 
+	$(CC) $(CFLAGS) -c $< -o $@
+
+# For each source file, generate its dependencies
+$(DIR_OBJ)/%.d: $(DIR_SRC)/%.c
+	@set -e; rm -f $@; \
+	$(CC) -MM $< > $@.$$$$; \
+	sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' < $@.$$$$ > $@; \
+	rm -f $@.$$$$
+
+-include $(OBJ:.o=.d)
+
 clean:
-	rm -rf *.o nm
+	# @echo $(OBJ)
+	# @echo $(SRC)
+	rm -f $(OBJ) $(TARGETS) $(OBJ:.o=.d)
