@@ -1,7 +1,9 @@
 #include <pcap.h>
 #include <stdbool.h>
 
-#define FLAG_STRLEN 128 // Maximum str length to hold dev flags 
+#define STRLEN_FLAG 128 // Maximum str length to hold dev flags 
+#define STRLEN_ADDR 128 // Maximum str length to hold dev addr 
+
 
 bool get_straddr(struct sockaddr *sa, char* saddr);
 bool get_strflag(bpf_u_int32 flags, char* sflag);

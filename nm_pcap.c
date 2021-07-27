@@ -4,19 +4,28 @@
 
 bool get_straddr(struct sockaddr *sa, char* saddr)
 {
-
     if(sa != NULL) {
         switch (sa->sa_family)
         {
         case AF_INET :
-        case AF_INET6:
-            if(inet_ntop(sa->sa_family,&(((struct sockaddr_in*)sa)->sin_addr),saddr,INET6_ADDRSTRLEN) == NULL) {
+            if(inet_ntop(sa->sa_family,&(((struct sockaddr_in*)sa)->sin_addr),saddr,INET_ADDRSTRLEN) == NULL) {
                 perror("inet_ntop");
                 // exit(EXIT_FAILURE);
             }
             break;
+        case AF_INET6:
+            if(inet_ntop(sa->sa_family,&(((struct sockaddr_in6*)sa)->sin6_addr),saddr,INET6_ADDRSTRLEN) == NULL) {
+                perror("inet_ntop");
+                // exit(EXIT_FAILURE);
+            }
+            break;
+        case AF_PACKET:
+            // printf("\tAF_PACKET");
+            strcpy(saddr, "AF_PACKET");
+            // saddr = "AF_PACKET";
+            break;
         default:
-            printf("\tunknown af_family:%u", sa->sa_family);
+            printf("\tunknown AF_Family:%u", sa->sa_family);
             return false;
         }
         return true;
@@ -24,62 +33,43 @@ bool get_straddr(struct sockaddr *sa, char* saddr)
     return false;
 }
 
+// TODO: Remove last '|' of flag string
 bool get_strflag(bpf_u_int32 flags, char* sflag)
 {
-    bool isflag = false;
-    if(flags & PCAP_IF_UP) {
-        strcat(sflag, "UP");
-        isflag = true;
-    }
+    if (flags != 0) {
+        if(flags & PCAP_IF_UP) 
+            strcat(sflag, "UP|");
+        
+        if(flags & PCAP_IF_LOOPBACK) 
+            strcat(sflag, "LOOPBACK|");
 
-    if(flags & PCAP_IF_LOOPBACK) {
-        if(isflag)
-            strcat(sflag, "|");
-        strcat(sflag, "LOOPBACK");
-        isflag = true;
-    }
+        if(flags & PCAP_IF_RUNNING) 
+            strcat(sflag, "RUNNING|");
 
-    if(flags & PCAP_IF_RUNNING) {
-        if(isflag)
-            strcat(sflag, "|");
-        strcat(sflag, "RUNNING");
-        isflag = true;
-    }
+        if(flags & PCAP_IF_CONNECTION_STATUS) {
+            if(flags & PCAP_IF_CONNECTION_STATUS_CONNECTED)
+                strcat(sflag, "CONNECTED|");
+            else if(flags & PCAP_IF_CONNECTION_STATUS_DISCONNECTED)
+                strcat(sflag, "DISCONNECTED|");
+            else if(flags & PCAP_IF_CONNECTION_STATUS_NOT_APPLICABLE)
+                strcat(sflag, "CONN_NOT_APPLICABLE|");
+            else if(flags & PCAP_IF_CONNECTION_STATUS_UNKNOWN)
+                strcat(sflag, "CONN_UNKNOWN|");
+        }
 
-    if(flags & PCAP_IF_CONNECTION_STATUS) {
-        if(isflag)
-            strcat(sflag, "|");
+        if(flags & PCAP_IF_WIRELESS) 
+            strcat(sflag, "WIRELESS|");
 
-        if(flags & PCAP_IF_CONNECTION_STATUS_CONNECTED)
-            strcat(sflag, "CONNECTED");
-        else if(flags & PCAP_IF_CONNECTION_STATUS_DISCONNECTED)
-            strcat(sflag, "DISCONNECTED");
-        else if(flags & PCAP_IF_CONNECTION_STATUS_NOT_APPLICABLE)
-            strcat(sflag, "CONN_NOT_APPLICABLE");
-        else if(flags & PCAP_IF_CONNECTION_STATUS_UNKNOWN)
-            strcat(sflag, "CONN_UNKNOWN");
-
-        isflag = true;
-    }
-
-    if(flags & PCAP_IF_WIRELESS) {
-        if(isflag)
-            strcat(sflag, "|");
-        strcat(sflag, "WIRELESS");
-        isflag = true;
-    }
-
-    if (isflag)
         return true;
-    else
+    } else
         return false;
 }
 
 void print_dev(pcap_if_t *ift)
 {
     pcap_addr_t *paddr;
-    char saddr[INET6_ADDRSTRLEN] = {0};
-    char sflag[FLAG_STRLEN];
+    char saddr[STRLEN_ADDR] = "";
+    char sflag[STRLEN_FLAG] = "";
 
     if(ift != NULL) {
         // Print dev name, desc and flags if any 
