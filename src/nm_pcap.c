@@ -2,6 +2,13 @@
 #include <stdlib.h> // exit, etc 
 #include <string.h> // strcat 
 
+bool get_straddr(struct sockaddr *sa, char* saddr);
+bool get_strflag(bpf_u_int32 flags, char* sflag);
+void print_dev(pcap_if_t *ift);
+
+void parse_packet(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes);
+
+
 bool get_straddr(struct sockaddr *sa, char* saddr)
 {
     if(sa != NULL) {
@@ -109,6 +116,30 @@ void print_alldevs()
         pcap_freealldevs(ift);
     } else {
         fprintf(stderr, "Error: %s\n", errbuf);
-        exit(1);
+        exit(EXIT_FAILURE);
+    }
+}
+
+void parse_packet(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes)
+{
+    printf("current packet len: %d\n", h->len);
+}
+
+void capture_live(const char *iface)
+{
+    char errbuf[PCAP_ERRBUF_SIZE];
+    pcap_t *hdr;
+    int ret;
+
+    if((hdr = pcap_create(iface, errbuf)) != NULL) {
+        if((ret = pcap_activate(hdr)) == 0) {
+            pcap_loop(hdr, -1, parse_packet, NULL);
+        } else {
+            pcap_perror(hdr, "error pcap_activate");
+        }
+        pcap_close(hdr);
+    } else {
+        fprintf(stderr, "error pcap_create: %s\n", errbuf);
+        exit(EXIT_FAILURE);
     }
 }
