@@ -55,6 +55,5 @@ int main(int argc, char *argv[])
     for(int i = optind; i < argc; i++) {
         fprintf(stderr, "%s: invalid positional argument: %s\n", argv[0], argv[i]);
     }
-    printf("finished\n");
     exit(0);
 }

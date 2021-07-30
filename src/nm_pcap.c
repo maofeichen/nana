@@ -1,13 +1,19 @@
 #include "nm_pcap.h"
+#include <signal.h>
 #include <stdlib.h> // exit, etc 
 #include <string.h> // strcat 
 
+// external variables
+pcap_t *pkt_hdr;    // packet handler: accessible in a signal handler function
+int cap_cnt;        // number of captured packets 
+
+// prototypes
 bool get_straddr(struct sockaddr *sa, char* saddr);
 bool get_strflag(bpf_u_int32 flags, char* sflag);
 void print_dev(pcap_if_t *ift);
 
+void sigint_handler(int sig);
 void parse_packet(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes);
-
 
 bool get_straddr(struct sockaddr *sa, char* saddr)
 {
@@ -120,26 +126,40 @@ void print_alldevs()
     }
 }
 
+void sigint_handler(int sig)
+{
+    printf("Caught SIGINT\n");
+    pcap_breakloop(pkt_hdr);
+    printf("total %d packet had been captured\n", cap_cnt);
+    // exit(EXIT_SUCCESS);
+}
+
 void parse_packet(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes)
 {
     printf("current packet len: %d\n", h->len);
+    cap_cnt++;
 }
 
 void capture_live(const char *iface)
 {
     char errbuf[PCAP_ERRBUF_SIZE];
-    pcap_t *hdr;
-    int ret;
+    int ra, rl;
 
-    if((hdr = pcap_create(iface, errbuf)) != NULL) {
-        if((ret = pcap_activate(hdr)) == 0) {
-            pcap_loop(hdr, -1, parse_packet, NULL);
+    if((pkt_hdr = pcap_create(iface, errbuf)) != NULL) {
+        if((ra = pcap_activate(pkt_hdr)) == 0) {
+            if(signal(SIGINT, sigint_handler) != SIG_ERR) {
+                rl = pcap_loop(pkt_hdr, -1, parse_packet, NULL);
+                if (rl == PCAP_ERROR)
+                    fprintf(stderr, "%s", pcap_geterr(pkt_hdr));
+                else if (rl == PCAP_ERROR_BREAK)
+                    printf("live capture terminateed by break\n");
+            }
         } else {
-            pcap_perror(hdr, "error pcap_activate");
+            pcap_perror(pkt_hdr, "error pcap_activate");
         }
-        pcap_close(hdr);
+        pcap_close(pkt_hdr);
     } else {
-        fprintf(stderr, "error pcap_create: %s\n", errbuf);
+        fprintf(stderr, "error pcap_create %s: %s\n", iface, errbuf);
         exit(EXIT_FAILURE);
     }
 }
