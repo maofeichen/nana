@@ -1,4 +1,4 @@
-#include "nm_pcap.h"
+#include "na_pcap.h"
 #include <signal.h>
 #include <stdlib.h> // exit, etc 
 #include <string.h> // strcat 
@@ -128,15 +128,14 @@ void print_alldevs()
 
 void sigint_handler(int sig)
 {
-    printf("Caught SIGINT\n");
     pcap_breakloop(pkt_hdr);
-    printf("total %d packet had been captured\n", cap_cnt);
+    printf("total captured packets: %d\n", cap_cnt);
     // exit(EXIT_SUCCESS);
 }
 
 void parse_packet(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes)
 {
-    printf("current packet len: %d\n", h->len);
+    // printf("current packet len: %d\n", h->len);
     cap_cnt++;
 }
 
@@ -148,6 +147,7 @@ void capture_live(const char *iface)
     if((pkt_hdr = pcap_create(iface, errbuf)) != NULL) {
         if((ra = pcap_activate(pkt_hdr)) == 0) {
             if(signal(SIGINT, sigint_handler) != SIG_ERR) {
+                printf("start capturing %s\n", iface);
                 rl = pcap_loop(pkt_hdr, -1, parse_packet, NULL);
                 if (rl == PCAP_ERROR)
                     fprintf(stderr, "%s", pcap_geterr(pkt_hdr));

@@ -1,4 +1,4 @@
-#include "nm_pcap.h"
+#include "na_pcap.h"
 #include <getopt.h>
 #include <stdlib.h> // exit, etc. 
 
