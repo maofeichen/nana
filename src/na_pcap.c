@@ -147,7 +147,7 @@ void capture_live(const char *iface)
     if((pkt_hdr = pcap_create(iface, errbuf)) != NULL) {
         if((ra = pcap_activate(pkt_hdr)) == 0) {
             if(signal(SIGINT, sigint_handler) != SIG_ERR) {
-                printf("start capturing %s\n", iface);
+                printf("start listening on %s\n", iface);
                 rl = pcap_loop(pkt_hdr, -1, parse_packet, NULL);
                 if (rl == PCAP_ERROR)
                     fprintf(stderr, "%s", pcap_geterr(pkt_hdr));

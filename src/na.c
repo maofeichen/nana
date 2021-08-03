@@ -6,10 +6,10 @@ void usage(char *n)
 {
     printf("usage: %s [options]\n"
            "Options:\n"
-           "--iface|-i          Capture live network traffice from iface\n"
-           "--print|-p          Display network interface information\n"
-           "--help|-h           Display help information\n"
-           "--version|-v        Display version informaion\n", n);
+           "-i,--iface      Capture live network traffice from iface\n"
+           "-p,--print      Display network interface information\n"
+           "-h,--help       Display help information\n"
+           "-v,--version    Display version informaion\n", n);
 }
 
 void version()
@@ -30,10 +30,10 @@ int main(int argc, char *argv[])
 
     if(argc <= 1) {
         usage(argv[0]);
+        exit(EXIT_FAILURE);
     }
 
-    while ((opt = getopt_long_only(argc, argv, "phvi:", longopts, &opt_index)) != -1) {
-        // printf("opt_index: %d - option: %s\n", opt_index, longopts[opt_index].name);
+    while ((opt = getopt_long(argc, argv, "phvi:", longopts, &opt_index)) != -1) {
         switch (opt)
         {
         case 'i':
@@ -46,6 +46,7 @@ int main(int argc, char *argv[])
             version();
             break;
         case 'h':
+        case '?':
         default:
             usage(argv[0]);
             break;
@@ -53,7 +54,8 @@ int main(int argc, char *argv[])
     }
 
     for(int i = optind; i < argc; i++) {
-        fprintf(stderr, "%s: invalid positional argument: %s\n", argv[0], argv[i]);
+        fprintf(stderr, "non-option argument: %s\n", argv[i]);
     }
-    exit(0);
+
+    exit(EXIT_SUCCESS);
 }
