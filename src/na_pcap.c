@@ -2,18 +2,19 @@
 #include <signal.h>
 #include <stdlib.h> // exit, etc 
 #include <string.h> // strcat 
+#include <stdbool.h>
+#include <stdint.h>
 
-// external variables
-pcap_t *pkt_hdr;    // packet handler: accessible in a signal handler function
-int cap_cnt;        // number of captured packets 
+pcap_t *pkt_handler;    // packet handler: accessible in a signal handler function
+u_int64_t cap_cnt = 0;  // number of captured packets
+bool is_termin_cap = false; // flag to terminate capture
 
-// prototypes
 bool get_straddr(struct sockaddr *sa, char* saddr);
 bool get_strflag(bpf_u_int32 flags, char* sflag);
-void print_dev(pcap_if_t *ift);
+void p_dev(pcap_if_t *ift);
 
-void sigint_handler(int sig);
-void parse_packet(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes);
+void sigint_hndlr(int sig);
+void proc_pkt(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes);
 
 bool get_straddr(struct sockaddr *sa, char* saddr)
 {
@@ -78,7 +79,7 @@ bool get_strflag(bpf_u_int32 flags, char* sflag)
         return false;
 }
 
-void print_dev(pcap_if_t *ift)
+void p_dev(pcap_if_t *ift)
 {
     pcap_addr_t *paddr;
     char saddr[STRLEN_ADDR] = "";
@@ -110,14 +111,14 @@ void print_dev(pcap_if_t *ift)
     }
 }
 
-void print_alldevs()
+void p_alldevs()
 {
     char errbuf[PCAP_ERRBUF_SIZE];
     pcap_if_t *ift, *it;
 
     if(pcap_findalldevs(&ift, errbuf) == 0) {
         for(it = ift; it; it=it->next) {
-            print_dev(it);
+            p_dev(it);
         }
         pcap_freealldevs(ift);
     } else {
@@ -126,40 +127,70 @@ void print_alldevs()
     }
 }
 
-void sigint_handler(int sig)
+void sigint_hndlr(int sig)
 {
-    pcap_breakloop(pkt_hdr);
-    printf("total captured packets: %d\n", cap_cnt);
-    // exit(EXIT_SUCCESS);
+    // pcap_breakloop(pkt_handler);
+    is_termin_cap = true;
+    // printf("total captured packets: %d\n", cap_cnt);
 }
 
-void parse_packet(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes)
+void proc_pkt(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes)
 {
     // printf("current packet len: %d\n", h->len);
     cap_cnt++;
 }
 
-void capture_live(const char *iface)
+void cap_live(const char *iface)
 {
     char errbuf[PCAP_ERRBUF_SIZE];
-    int ra, rl;
+    int ract, rloop, rstat, rnpkt;
+    struct pcap_stat pstat;
+    struct pcap_pkthdr *pkt_hdr;
+    const u_char *pkt_data;
 
-    if((pkt_hdr = pcap_create(iface, errbuf)) != NULL) {
-        if((ra = pcap_activate(pkt_hdr)) == 0) {
-            if(signal(SIGINT, sigint_handler) != SIG_ERR) {
-                printf("start listening on %s\n", iface);
-                rl = pcap_loop(pkt_hdr, -1, parse_packet, NULL);
-                if (rl == PCAP_ERROR)
-                    fprintf(stderr, "%s", pcap_geterr(pkt_hdr));
-                else if (rl == PCAP_ERROR_BREAK)
-                    printf("live capture terminateed by break\n");
-            }
-        } else {
-            pcap_perror(pkt_hdr, "error pcap_activate");
-        }
-        pcap_close(pkt_hdr);
-    } else {
+    if(signal(SIGINT, sigint_hndlr) == SIG_ERR) {
+        fprintf(stderr, "error register signal sigint\n");
+        exit(EXIT_FAILURE);
+    }
+
+    if((pkt_handler = pcap_create(iface, errbuf)) == NULL) {
         fprintf(stderr, "error pcap_create %s: %s\n", iface, errbuf);
         exit(EXIT_FAILURE);
     }
+
+    // create handler success, need to close it at the end
+    if(ract = pcap_activate(pkt_handler) != 0) {
+        pcap_perror(pkt_handler, "error pcap_activate");
+        goto close_handler;
+    }
+
+    if((pcap_setnonblock(pkt_handler, 1, errbuf)) != 0) {
+        fprintf(stderr, "error pcap_setnonblock %s: %s\n", iface, errbuf);
+        goto close_handler;
+    }
+
+    printf("start listening on interface: %s\n", iface);
+    while (true) {
+        if (is_termin_cap) 
+            break;
+        
+        if ((rnpkt = pcap_next_ex(pkt_handler, &pkt_hdr, &pkt_data)) == PCAP_ERROR) {
+            pcap_perror(pkt_handler, "error pcap_next_ex");
+            break;
+        } else if(rnpkt == 1){
+            cap_cnt++;
+        }
+    }
+
+    if((rstat = pcap_stats(pkt_handler, &pstat)) == 0) {
+        // printf("total %u packets received - %u packets dropped - %u packets dropped by kernel\n", 
+        //         pstat.ps_recv, pstat.ps_drop, pstat.ps_ifdrop);
+        printf("total %u packets received - %u packets dropped - %u packets dropped by kernel\n", 
+                cap_cnt, pstat.ps_drop, pstat.ps_ifdrop);
+    }
+    else if(rstat == PCAP_ERROR)
+        pcap_perror(pkt_handler, "error pcap_stats");
+
+close_handler:
+    pcap_close(pkt_handler);
 }

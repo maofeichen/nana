@@ -37,10 +37,10 @@ int main(int argc, char *argv[])
         switch (opt)
         {
         case 'i':
-            capture_live(optarg);
+            cap_live(optarg);
             break;
         case 'p':
-            print_alldevs();
+            p_alldevs();
             break;
         case 'v':
             version();
