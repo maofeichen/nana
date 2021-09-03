@@ -3,10 +3,10 @@ DIR_OBJ := .
 DIR_BIN := .
 
 TARGETS := $(DIR_BIN)/na
-SRC		 = $(wildcard $(DIR_SRC)/*.c)
-OBJ		:= $(SRC:$(DIR_SRC)/%.c=$(DIR_OBJ)/%.o)
+SRC	= $(wildcard $(DIR_SRC)/*.c)
+OBJ	:= $(SRC:$(DIR_SRC)/%.c=$(DIR_OBJ)/%.o)
 
-CC		= gcc
+CC	= gcc
 CCFLAG	= -g -Wall
 CINC	= -lpcap
 
@@ -15,7 +15,7 @@ all: $(TARGETS)
 
 # Linking
 $(TARGETS): $(OBJ) 
-	$(CC) $(CINC) $^ -o $@
+	$(CC) $^ -o $@ $(CINC) 
 
 # For each source file, compile to its object file
 $(OBJ): $(DIR_OBJ)/%.o: $(DIR_SRC)/%.c 
