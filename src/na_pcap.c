@@ -143,13 +143,18 @@ void proc_pkt(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes)
 void cap_live(const char *iface)
 {
     char errbuf[PCAP_ERRBUF_SIZE];
-    int ract, rloop, rstat, rnpkt;
+    int ract, rloop, rstat, rnpkt, rset;
     struct pcap_stat pstat;
     struct pcap_pkthdr *pkt_hdr;
     const u_char *pkt_data;
 
     if(signal(SIGINT, sigint_hndlr) == SIG_ERR) {
-        fprintf(stderr, "error register signal sigint\n");
+        fprintf(stderr, "error register signal SIGINT\n");
+        exit(EXIT_FAILURE);
+    }
+
+    if(pcap_init(PCAP_CHAR_ENC_UTF_8, errbuf) == -1) {
+        fprintf(stderr, "error pcap_init: %s\n", errbuf);
         exit(EXIT_FAILURE);
     }
 
@@ -157,8 +162,13 @@ void cap_live(const char *iface)
         fprintf(stderr, "error pcap_create %s: %s\n", iface, errbuf);
         exit(EXIT_FAILURE);
     }
-
     // create handler success, need to close it at the end
+
+    if((rset = pcap_set_promisc(pkt_handler, 1)) != 0) {
+        pcap_perror(pkt_handler, "error pcap_set_promisc");
+        goto close_handler;
+    }
+
     if(ract = pcap_activate(pkt_handler) != 0) {
         pcap_perror(pkt_handler, "error pcap_activate");
         goto close_handler;
