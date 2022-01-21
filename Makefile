@@ -2,7 +2,7 @@ DIR_SRC := ./src
 DIR_OBJ := .
 DIR_BIN := .
 
-TARGETS := $(DIR_BIN)/na
+TARGETS := $(DIR_BIN)/nmon
 SRC	= $(wildcard $(DIR_SRC)/*.c)
 OBJ	:= $(SRC:$(DIR_SRC)/%.c=$(DIR_OBJ)/%.o)
 

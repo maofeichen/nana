@@ -1,5 +1,5 @@
-#ifndef _NA_PCAP_H
-#define _NA_PCAP_H
+#ifndef _NM_PCAP_H
+#define _NM_PCAP_H
 
 #include <pcap.h>   // libpcap
 #include <stdbool.h>

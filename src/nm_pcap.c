@@ -1,4 +1,4 @@
-#include "na_pcap.h"
+#include "nm_pcap.h"
 #include <signal.h>
 #include <stdlib.h> // exit, etc 
 #include <string.h> // strcat 
