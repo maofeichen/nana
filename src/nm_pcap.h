@@ -10,4 +10,4 @@
 void p_alldevs();
 void cap_live(const char *iface);
 
-#endif
+#endif  // _NM_PCAP_H

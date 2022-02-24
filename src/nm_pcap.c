@@ -1,9 +1,10 @@
-#include "nm_pcap.h"
 #include <signal.h>
 #include <stdlib.h> // exit, etc 
 #include <string.h> // strcat 
 #include <stdbool.h>
 #include <stdint.h>
+
+#include "nm_pcap.h"
 
 pcap_t *pkt_handler;    // packet handler: accessible in a signal handler function
 u_int64_t cap_cnt = 0;  // number of captured packets
