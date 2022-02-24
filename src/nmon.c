@@ -4,19 +4,19 @@
 #include "nm_pcap.h"
 #include "nmon.h"
 
-void usage(char *n)
+void usage(char *nm)
 {
     printf("usage: %s [options]\n"
            "Options:\n"
-           "-i,--iface      Capture live network traffice from iface\n"
-           "-s,--show       Display network interface information\n"
+           "-i,--iface      Capture live network traffic from iface\n"
+           "-d,--display    Display network interface information\n"
            "-h,--help       Display help information\n"
-           "-v,--version    Display version informaion\n", n);
+           "-v,--version    Display version informaion\n", nm);
 }
 
-void version(char *n)
+void version(char *nm)
 {
-    printf("%s version 0.01\n", n);
+    printf("%s version 0.01\n", nm);
 }
 
 int main(int argc, char *argv[])
@@ -24,24 +24,24 @@ int main(int argc, char *argv[])
     int opt, opt_index;
     static const struct option longopts[] = {
         {"iface",   required_argument, 0, 'i'},
-        {"shwo",    no_argument, 0, 's'},
+        {"display", no_argument, 0, 'd'},
         {"help",    no_argument, 0, 'h'},
         {"version", no_argument, 0, 'v'},
         {NULL,      0,           0, 0},
     };
 
     if(argc <= 1) {
-        usage(argv[0]);
+        usage(PROG_NAME);
         exit(EXIT_FAILURE);
     }
 
-    while ((opt = getopt_long(argc, argv, "shvi:", longopts, &opt_index)) != -1) {
+    while ((opt = getopt_long(argc, argv, "dhvi:", longopts, &opt_index)) != -1) {
         switch (opt)
         {
         case 'i':
             cap_live(optarg);
             break;
-        case 's':
+        case 'd':
             p_alldevs();
             break;
         case 'v':
@@ -50,7 +50,7 @@ int main(int argc, char *argv[])
         case 'h':
         case '?':
         default:
-            usage(argv[0]);
+            usage(PROG_NAME);
             break;
         }
     }
